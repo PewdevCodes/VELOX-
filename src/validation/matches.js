@@ -17,6 +17,10 @@ export const matchIdParamSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
 
+const isoDateString = z.iso.datetime();
+
+
+
 // Create match schema
 export const createMatchSchema = z
   .object({
