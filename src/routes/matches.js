@@ -63,6 +63,10 @@ matchesRouter.post('/', async (req, res) => {
       })
       .returning();
 
+      if(res.app.locals.broadcastMatchCreated) {
+        res.app.locals.broadcastMatchCreated(event);
+      }
+
     // Helper to determine match status
     function getMatchStatus(startTime, endTime) {
       const now = new Date();
