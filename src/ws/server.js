@@ -1,10 +1,10 @@
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
+
+let wss; // moved to module scope
 
 function sendJson(socket, payload) {
-  if (socket.readyState === WebSocketServer.OPEN) {
+  if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify(payload));
-  } else {
-    return;
   }
 }
 
@@ -12,14 +12,12 @@ function broadcast(wss, payload) {
   for (const client of wss.clients) {
     if (client.readyState === WebSocket.OPEN) {
       client.send(JSON.stringify(payload));
-    } else {
-      return;
     }
   }
 }
 
 export function attachWebSocketServer(server) {
-  const wss = new WebSocketServer({
+  wss = new WebSocketServer({
     server,
     path: '/ws',
     maxPayload: 1024 * 1024,
@@ -30,7 +28,24 @@ export function attachWebSocketServer(server) {
     this.isAlive = true;
   }
 
-  wss.on('connection', (socket) => {
+  wss.on('connection', async (socket, request) => {
+    if (!wsArcjet) {
+      try {
+        const decision = await wsArcjet.protect(request);
+
+        if (decision.isDenied()) {
+          if (decision.reason.isRateLimit()) {
+            socket.close(1008, 'Too Many Requests');
+          } else {
+            socket.close(1008, 'Forbidden');
+          }
+        }
+      } catch (error) {
+        console.error('Arcjet WS Error:', error);
+        socket.close(1011, 'Internal Server Error');
+      }
+    }
+
     socket.isAlive = true;
 
     socket.on('pong', heartbeat);
@@ -56,12 +71,10 @@ export function attachWebSocketServer(server) {
   wss.on('close', () => {
     clearInterval(interval);
   });
-
-  return {};
 }
 
-function broadcastMatchCreated(match) {
+// exported instead of illegal return
+export function broadcastMatchCreated(match) {
+  if (!wss) return;
   broadcast(wss, { type: 'match_created', data: match });
 }
-
-return { broadcastMatchCreated };
