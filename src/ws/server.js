@@ -1,4 +1,58 @@
 import { WebSocketServer, WebSocket } from 'ws';
+import { wsArcjet } from '../arcjet.js';
+
+const matchSubscribers = new Map();
+
+function subscribe(matchId, socket) {
+  if (!matchSubscribers.has(matchId)) {
+    matchSubscribers.set(matchId, new Set());
+  }
+  matchSubscribers.get(matchId).add(socket);
+}
+
+function unsubscribe(matchId, socket) {
+  if (matchSubscribers.has(matchId)) {
+    matchSubscribers.get(matchId).delete(socket);
+  }
+}
+
+function cleanupSubscriptions(socket) {
+  for (const matchId of socket.subscriptions) {
+    unsubscribe(matchId, socket);
+  }
+}
+
+function broadcastToMatch(matchId, payload) {
+  if (!matchSubscribers.has(matchId)) return;
+  for (const socket of matchSubscribers.get(matchId)) {
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(payload));
+    }
+  }
+}
+
+function handleMessage(socket, data) {
+  let message;
+
+  try {
+    message = JSON.parse(data.toString());
+  } catch {
+    sendJson(socket, { type: 'error', message: 'Invalid message format' });
+    return;
+  }
+
+  if (message.type === 'subscribe' && message.matchId) {
+    subscribe(message.matchId, socket);
+    socket.subscriptions.add(message.matchId);
+    sendJson(socket, { type: 'subscribed', matchId: message.matchId });
+  }
+
+  if (message.type === 'unsubscribe' && message.matchId) {
+    unsubscribe(message.matchId, socket);
+    socket.subscriptions.delete(message.matchId);
+    sendJson(socket, { type: 'unsubscribed', matchId: message.matchId });
+  }
+}
 
 let wss; // moved to module scope
 
@@ -8,7 +62,7 @@ function sendJson(socket, payload) {
   }
 }
 
-function broadcast(wss, payload) {
+function broadcastToAll(payload) {
   for (const client of wss.clients) {
     if (client.readyState === WebSocket.OPEN) {
       client.send(JSON.stringify(payload));
@@ -50,7 +104,13 @@ export function attachWebSocketServer(server) {
 
     socket.on('pong', heartbeat);
 
+    socket.subscriptions = new Set();
+
     sendJson(socket, { type: 'welcome' });
+
+    socket.on('message', (data) => handleMessage(socket, data));
+
+    socket.on('close', () => cleanupSubscriptions(socket));
 
     socket.on('error', console.error);
   });
@@ -76,5 +136,10 @@ export function attachWebSocketServer(server) {
 // exported instead of illegal return
 export function broadcastMatchCreated(match) {
   if (!wss) return;
-  broadcast(wss, { type: 'match_created', data: match });
+  broadcastToAll({ type: 'match_created', data: match });
+}
+
+export function broadcastCommentary(matchId, commentary) {
+  if (!wss) return;
+  broadcastToMatch(matchId, { type: 'commentary_update', data: commentary });
 }

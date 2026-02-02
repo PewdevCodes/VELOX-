@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title> VELOX - Real-time Sports Broadcasting</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <h1>⚽ VELOX</h1>
+        <div class="connection-status">
+          <span class="status-indicator" id="wsStatus"></span>
+          <span id="wsStatusText">Connecting...</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <div class="grid">
+        <!-- Matches Section -->
+        <section class="matches-section">
+          <div class="section-header">
+            <h2>Live Matches</h2>
+            <button id="refreshMatches" class="btn-secondary">
+              🔄 Refresh
+            </button>
+          </div>
+          <div id="matchesList" class="matches-list">
+            <div class="loading">Loading matches...</div>
+          </div>
+        </section>
+
+        <!-- Commentary Section -->
+        <section class="commentary-section">
+          <div class="section-header">
+            <h2>Live Commentary</h2>
+            <div id="selectedMatch">Select a match to view commentary</div>
+          </div>
+          <div id="commentaryList" class="commentary-list">
+            <div class="empty-state">
+              <p>👈 Select a match from the list to view live commentary</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Admin Panel (Optional - for testing) -->
+      <section class="admin-panel">
+        <details>
+          <summary>⚙️ Admin Panel (Testing)</summary>
+          <div class="admin-content">
+            <h3>Create Test Match</h3>
+            <form id="createMatchForm">
+              <input
+                type="text"
+                name="sport"
+                placeholder="Sport (e.g., Football)"
+                required
+              />
+              <input
+                type="text"
+                name="homeTeam"
+                placeholder="Home Team"
+                required
+              />
+              <input
+                type="text"
+                name="awayTeam"
+                placeholder="Away Team"
+                required
+              />
+              <input type="datetime-local" name="startTime" required />
+              <input type="datetime-local" name="endTime" required />
+              <button type="submit" class="btn-primary">Create Match</button>
+            </form>
+
+            <h3>Add Commentary (Selected Match)</h3>
+            <form id="addCommentaryForm">
+              <input type="number" name="minute" placeholder="Minute" min="0" />
+              <input
+                type="number"
+                name="sequence"
+                placeholder="Sequence"
+                required
+              />
+              <input
+                type="text"
+                name="eventType"
+                placeholder="Event Type"
+                required
+              />
+              <input
+                type="text"
+                name="actor"
+                placeholder="Actor/Player"
+                required
+              />
+              <input type="text" name="team" placeholder="Team" />
+              <textarea
+                name="message"
+                placeholder="Commentary message"
+                required
+              ></textarea>
+              <button type="submit" class="btn-primary">Add Commentary</button>
+            </form>
+          </div>
+        </details>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
